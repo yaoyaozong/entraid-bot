@@ -75,6 +75,14 @@ export class EntraIDManager {
    * @returns {Promise<Object>} Result of the operation
    */
   async disableUser(userId) {
+    // Check if the user is a guest user (contains #EXT# in UPN)
+    if (userId.includes("#EXT#")) {
+      return {
+        success: false,
+        message: `Cannot disable guest user ${userId}. Guest users with external identities are protected from disabling operations.`,
+      };
+    }
+
     try {
       const token = await this.getAccessToken();
       const response = await axios.patch(

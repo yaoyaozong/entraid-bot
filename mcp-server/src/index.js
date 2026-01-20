@@ -43,7 +43,7 @@ const tools = [
   {
     name: "disable_user",
     description:
-      "Disable a user account in EntraID by user ID or user principal name (UPN)",
+      "Disable a user account in EntraID by user ID or user principal name (UPN). Guest users (containing #EXT# in their UPN) cannot be disabled.",
     inputSchema: {
       type: "object",
       properties: {
