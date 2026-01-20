@@ -87,6 +87,38 @@ const tools = [
     },
   },
   {
+    name: "search_user_by_job_title",
+    description:
+      "Search for users by job title in EntraID. Returns matching users with their UPN, display name, job title, department, and account status.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        jobTitle: {
+          type: "string",
+          description:
+            "Job title to search for (case-sensitive, searches for titles starting with the provided text)",
+        },
+      },
+      required: ["jobTitle"],
+    },
+  },
+  {
+    name: "search_user_by_department",
+    description:
+      "Search for users by department in EntraID. Returns matching users with their UPN, display name, job title, department, and account status.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        department: {
+          type: "string",
+          description:
+            "Department to search for (case-sensitive, searches for departments starting with the provided text)",
+        },
+      },
+      required: ["department"],
+    },
+  },
+  {
     name: "enable_user_by_name",
     description:
       "Enable a user account by display name. If multiple matches are found, returns the list for you to use the exact UPN.",
@@ -160,6 +192,12 @@ app.post("/call-tool", async (req, res) => {
         break;
       case "search_user_by_name":
         result = await entraIdManager.searchUserByName(args.displayName);
+        break;
+      case "search_user_by_job_title":
+        result = await entraIdManager.searchUserByJobTitle(args.jobTitle);
+        break;
+      case "search_user_by_department":
+        result = await entraIdManager.searchUserByDepartment(args.department);
         break;
       case "enable_user_by_name":
         result = await entraIdManager.enableUserByName(args.displayName);

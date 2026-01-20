@@ -190,6 +190,84 @@ export class EntraIDManager {
   }
 
   /**
+   * Search for users by job title in EntraID
+   * @param {string} jobTitle - Job title to search for
+   * @returns {Promise<Object>} List of matching users
+   */
+  async searchUserByJobTitle(jobTitle) {
+    try {
+      const token = await this.getAccessToken();
+      const response = await axios.get(
+        `https://graph.microsoft.com/v1.0/users?$filter=startswith(jobTitle,'${jobTitle}')&$select=id,userPrincipalName,displayName,jobTitle,department,accountEnabled`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const users = response.data.value || [];
+      return {
+        success: true,
+        count: users.length,
+        users: users.map(user => ({
+          id: user.id,
+          userPrincipalName: user.userPrincipalName,
+          displayName: user.displayName,
+          jobTitle: user.jobTitle,
+          department: user.department,
+          accountEnabled: user.accountEnabled,
+        })),
+      };
+    } catch (error) {
+      const message =
+        error.response?.data?.error?.message ||
+        error.message ||
+        "Unknown error";
+      throw new Error(`Failed to search users by job title ${jobTitle}: ${message}`);
+    }
+  }
+
+  /**
+   * Search for users by department in EntraID
+   * @param {string} department - Department to search for
+   * @returns {Promise<Object>} List of matching users
+   */
+  async searchUserByDepartment(department) {
+    try {
+      const token = await this.getAccessToken();
+      const response = await axios.get(
+        `https://graph.microsoft.com/v1.0/users?$filter=startswith(department,'${department}')&$select=id,userPrincipalName,displayName,jobTitle,department,accountEnabled`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const users = response.data.value || [];
+      return {
+        success: true,
+        count: users.length,
+        users: users.map(user => ({
+          id: user.id,
+          userPrincipalName: user.userPrincipalName,
+          displayName: user.displayName,
+          jobTitle: user.jobTitle,
+          department: user.department,
+          accountEnabled: user.accountEnabled,
+        })),
+      };
+    } catch (error) {
+      const message =
+        error.response?.data?.error?.message ||
+        error.message ||
+        "Unknown error";
+      throw new Error(`Failed to search users by department ${department}: ${message}`);
+    }
+  }
+
+  /**
    * Enable a user by display name (finds the first match)
    * @param {string} displayName - Display name of the user to enable
    * @returns {Promise<Object>} Result of the operation
