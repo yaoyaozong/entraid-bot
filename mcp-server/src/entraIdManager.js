@@ -151,4 +151,114 @@ export class EntraIDManager {
       throw new Error(`Failed to get user status for ${userId}: ${message}`);
     }
   }
+
+  /**
+   * Search for users by display name in EntraID
+   * @param {string} displayName - Full or partial display name to search for
+   * @returns {Promise<Object>} List of matching users
+   */
+  async searchUserByName(displayName) {
+    try {
+      const token = await this.getAccessToken();
+      const response = await axios.get(
+        `https://graph.microsoft.com/v1.0/users?$filter=startswith(displayName,'${displayName}')&$select=id,userPrincipalName,displayName,accountEnabled`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const users = response.data.value || [];
+      return {
+        success: true,
+        count: users.length,
+        users: users.map(user => ({
+          id: user.id,
+          userPrincipalName: user.userPrincipalName,
+          displayName: user.displayName,
+          accountEnabled: user.accountEnabled,
+        })),
+      };
+    } catch (error) {
+      const message =
+        error.response?.data?.error?.message ||
+        error.message ||
+        "Unknown error";
+      throw new Error(`Failed to search users by name ${displayName}: ${message}`);
+    }
+  }
+
+  /**
+   * Enable a user by display name (finds the first match)
+   * @param {string} displayName - Display name of the user to enable
+   * @returns {Promise<Object>} Result of the operation
+   */
+  async enableUserByName(displayName) {
+    try {
+      const searchResult = await this.searchUserByName(displayName);
+      
+      if (!searchResult.success || searchResult.count === 0) {
+        return {
+          success: false,
+          message: `No users found with display name matching "${displayName}"`,
+        };
+      }
+
+      if (searchResult.count > 1) {
+        return {
+          success: false,
+          message: `Multiple users found matching "${displayName}". Please be more specific or use the exact UPN.`,
+          users: searchResult.users,
+        };
+      }
+
+      const user = searchResult.users[0];
+      return await this.enableUser(user.userPrincipalName);
+    } catch (error) {
+      const message = error.message || "Unknown error";
+      throw new Error(`Failed to enable user by name ${displayName}: ${message}`);
+    }
+  }
+
+  /**
+   * Disable a user by display name (finds the first match)
+   * @param {string} displayName - Display name of the user to disable
+   * @returns {Promise<Object>} Result of the operation
+   */
+  async disableUserByName(displayName) {
+    try {
+      const searchResult = await this.searchUserByName(displayName);
+      
+      if (!searchResult.success || searchResult.count === 0) {
+        return {
+          success: false,
+          message: `No users found with display name matching "${displayName}"`,
+        };
+      }
+
+      if (searchResult.count > 1) {
+        return {
+          success: false,
+          message: `Multiple users found matching "${displayName}". Please be more specific or use the exact UPN.`,
+          users: searchResult.users,
+        };
+      }
+
+      const user = searchResult.users[0];
+      
+      // Check if the user is a guest user before attempting to disable
+      if (user.userPrincipalName.includes("#EXT#")) {
+        return {
+          success: false,
+          message: `Cannot disable guest user ${user.userPrincipalName}. Guest users with external identities are protected from disabling operations.`,
+        };
+      }
+      
+      return await this.disableUser(user.userPrincipalName);
+    } catch (error) {
+      const message = error.message || "Unknown error";
+      throw new Error(`Failed to disable user by name ${displayName}: ${message}`);
+    }
+  }
 }

@@ -70,6 +70,52 @@ const tools = [
       required: ["userId"],
     },
   },
+  {
+    name: "search_user_by_name",
+    description:
+      "Search for users by display name in EntraID. Returns matching users with their UPN, display name, and account status.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        displayName: {
+          type: "string",
+          description:
+            "Full or partial display name to search for (case-sensitive, searches for names starting with the provided text)",
+        },
+      },
+      required: ["displayName"],
+    },
+  },
+  {
+    name: "enable_user_by_name",
+    description:
+      "Enable a user account by display name. If multiple matches are found, returns the list for you to use the exact UPN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        displayName: {
+          type: "string",
+          description: "Display name of the user to enable",
+        },
+      },
+      required: ["displayName"],
+    },
+  },
+  {
+    name: "disable_user_by_name",
+    description:
+      "Disable a user account by display name. Guest users (containing #EXT# in their UPN) cannot be disabled. If multiple matches are found, returns the list for you to use the exact UPN.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        displayName: {
+          type: "string",
+          description: "Display name of the user to disable",
+        },
+      },
+      required: ["displayName"],
+    },
+  },
 ];
 
 // API Endpoints
@@ -111,6 +157,15 @@ app.post("/call-tool", async (req, res) => {
         break;
       case "get_user_status":
         result = await entraIdManager.getUserStatus(args.userId);
+        break;
+      case "search_user_by_name":
+        result = await entraIdManager.searchUserByName(args.displayName);
+        break;
+      case "enable_user_by_name":
+        result = await entraIdManager.enableUserByName(args.displayName);
+        break;
+      case "disable_user_by_name":
+        result = await entraIdManager.disableUserByName(args.displayName);
         break;
       default:
         return res.status(400).json({
