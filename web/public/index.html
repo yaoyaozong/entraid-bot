@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EntraID Manager - Web Interface</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="chat-container">
+      <div class="sidebar">
+        <div class="logo">
+          <h1>🔐 EntraID Manager</h1>
+          <p>AI-Powered User Management</p>
+        </div>
+        <button id="clearBtn" class="clear-btn">+ New Chat</button>
+        <div class="sidebar-footer">
+          <p class="status-label">Status</p>
+          <div id="statusIndicator" class="status-indicator">
+            <span class="status-dot"></span>
+            <span id="statusText">Connecting...</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div id="messagesContainer" class="messages-container">
+          <div class="welcome-message">
+            <h2>Welcome to EntraID Manager 👋</h2>
+            <p>
+              I can help you manage user accounts in your EntraID directory.
+            </p>
+            <div class="example-prompts">
+              <p>Try asking me to:</p>
+              <div class="prompt-list">
+                <div class="prompt-item">Enable a user account</div>
+                <div class="prompt-item">Disable a user account</div>
+                <div class="prompt-item">Check user status</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-area">
+          <form id="chatForm" class="chat-form">
+            <div class="input-wrapper">
+              <input
+                type="text"
+                id="messageInput"
+                placeholder="Ask me to enable/disable a user or check their status..."
+                autocomplete="off"
+              />
+              <button type="submit" id="sendBtn" class="send-btn">
+                <span>Send</span>
+                <span class="send-icon">→</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

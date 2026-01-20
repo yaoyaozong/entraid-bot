@@ -1,0 +1,16 @@
+{
+  "name": "entra-id-manager",
+  "version": "1.0.0",
+  "description": "Distributed EntraID management system with HTTP-based architecture",
+  "private": true,
+  "scripts": {
+    "install-all": "npm install && npm --prefix mcp-server install && npm --prefix agent install && npm --prefix web install",
+    "start-all": "concurrently \"npm --prefix mcp-server start\" \"npm --prefix agent start\" \"npm --prefix web start\"",
+    "start-mcp": "npm --prefix mcp-server start",
+    "start-agent": "npm --prefix agent start",
+    "start-web": "npm --prefix web start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  }
+}

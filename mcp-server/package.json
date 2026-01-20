@@ -1,0 +1,18 @@
+{
+  "name": "entra-id-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for managing EntraID user accounts - HTTP endpoint",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "@azure/identity": "^4.0.1",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  }
+}

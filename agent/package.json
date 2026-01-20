@@ -1,0 +1,15 @@
+{
+  "name": "entra-id-agent",
+  "version": "1.0.0",
+  "description": "CLI agent for EntraID management with OpenAI",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "openai": "^4.28.0"
+  }
+}
