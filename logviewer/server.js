@@ -176,9 +176,9 @@ app.get("/api/health", (req, res) => {
 // Start server
 (async () => {
   try {
-    // console.log("📍 Starting server initialization...");
+    console.log("📍 Starting Log Viewer initialization...");
     immudbClient = await initImmuDB();
-    // console.log("📍 immuDB client initialized");
+    console.log("📍 immuDB client initialized");
 
     const server = app.listen(PORT, () => {
       console.log(`🌐 Log Viewer running at http://localhost:${PORT}`);
