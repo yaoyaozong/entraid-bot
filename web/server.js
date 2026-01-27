@@ -37,10 +37,11 @@ async function getAvailableTools() {
 }
 
 // Call tool via MCP server
-async function callMCPTool(toolName, toolInput) {
+async function callMCPTool(toolName, toolInput, requesterIp) {
   const response = await axios.post(`${MCP_SERVER_URL}/call-tool`, {
     name: toolName,
     arguments: toolInput,
+    requesterIp: requesterIp || "web-server",
   });
 
   if (response.data.success) {
@@ -136,7 +137,7 @@ app.post("/api/chat", async (req, res) => {
           }
 
           try {
-            const result = await callMCPTool(toolName, toolInput);
+            const result = await callMCPTool(toolName, toolInput, req.ip);
             toolResults.push({
               tool_call_id: toolCall.id,
               result: result,

@@ -7,6 +7,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { EntraIDManager } from "./entraIdManager.js";
+import { ImmuDBLogger } from "./immudbLogger.js";
 
 dotenv.config();
 
@@ -15,11 +16,48 @@ const PORT = process.env.MCP_PORT || 3001;
 
 app.use(express.json());
 
+// Resolve requester IPs even when behind proxies or when the agent forwards it explicitly.
+const getRequesterIp = req => {
+  // Highest priority: agent-provided explicit IP (body or custom header)
+  const explicitIp = req.body?.requesterIp || req.headers["x-user-ip"];
+  if (typeof explicitIp === "string" && explicitIp.trim()) {
+    return explicitIp.trim();
+  }
+
+  // Proxy headers (standard): X-Forwarded-For, X-Real-IP
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded.length > 0) {
+    const forwardedIps = forwarded.split(",").map(ip => ip.trim());
+    if (forwardedIps[0]) {
+      return forwardedIps[0];
+    }
+  }
+
+  const realIp = req.headers["x-real-ip"];
+  if (typeof realIp === "string" && realIp.trim()) {
+    return realIp.trim();
+  }
+
+  // Fallback: connection-derived
+  return req.socket?.remoteAddress || req.ip || "unknown";
+};
+
 // Initialize Entra ID Manager
 const entraIdManager = new EntraIDManager({
   tenantId: process.env.AZURE_TENANT_ID,
   clientId: process.env.AZURE_CLIENT_ID,
   clientSecret: process.env.AZURE_CLIENT_SECRET,
+});
+
+// Initialize immuDB audit logger
+const immudbLogger = new ImmuDBLogger({
+  host: process.env.IMMUDB_HOST,
+  port: Number(process.env.IMMUDB_PORT),
+  user: process.env.IMMUDB_USER,
+  password: process.env.IMMUDB_PASSWORD,
+  database: process.env.IMMUDB_DATABASE,
+  mode: process.env.IMMUDB_MODE || "kv", // kv | sql | both
+  enabled: process.env.IMMUDB_ENABLED !== "false",
 });
 
 // Define tools
@@ -209,6 +247,37 @@ app.post("/call-tool", async (req, res) => {
         return res.status(400).json({
           error: `Unknown tool: ${name}`,
         });
+    }
+
+    // Audit enable/disable operations into immuDB without blocking the response.
+    const actionName =
+      name === "enable_user" || name === "enable_user_by_name"
+        ? "enable"
+        : name === "disable_user" || name === "disable_user_by_name"
+        ? "disable"
+        : null;
+
+    if (actionName && result?.success) {
+      const targetUserId =
+        result?.user?.id ||
+        result?.user?.userPrincipalName ||
+        args.userId ||
+        args.displayName;
+
+      const requesterIp = getRequesterIp(req);
+      console.log(`📝 Recording audit: action=${actionName}, user=${targetUserId}, ip=${requesterIp}`);
+
+      immudbLogger
+        .recordAction({
+          requesterIp,
+          targetUserId,
+          action: actionName,
+        })
+        .catch(error => {
+          console.error("Failed to record immuDB audit entry", error);
+        });
+    } else if (actionName) {
+      console.log(`⚠️  Action ${actionName} not recorded: operation failed or user not found`);
     }
 
     res.json({
