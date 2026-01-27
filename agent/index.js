@@ -23,7 +23,7 @@ async function getAvailableTools() {
 }
 
 // Call tool via MCP server
-async function callMCPTool(toolName, toolInput) {
+async function callMCPTool(toolName, toolInput, requesterIp = "cli-agent") {
   try {
     console.log(`\n🔧 Calling tool: ${toolName}`);
     console.log(`   Input: ${JSON.stringify(toolInput)}`);
@@ -31,6 +31,7 @@ async function callMCPTool(toolName, toolInput) {
     const response = await axios.post(`${MCP_SERVER_URL}/call-tool`, {
       name: toolName,
       arguments: toolInput,
+      requesterIp,
     });
 
     if (response.data.success) {
@@ -134,8 +135,27 @@ async function runAgent() {
         rl.question(prompt, resolve);
       });
 
-    // Main conversation loop
-    const messages = [];
+    // Main conversation loop with system prompt
+    const systemPrompt = {
+      role: "system",
+      content: `You are an IT support assistant specialized in managing Microsoft Entra ID (formerly Azure Active Directory) user accounts.
+
+Your responsibilities:
+- Help users enable or disable user accounts in Entra ID
+- Search for users by name, job title, or department
+- Check user account status
+- Provide clear, concise responses about account operations
+
+Guidelines:
+- When multiple users match a search, list them clearly and ask which one to act on
+- Be professional and security-conscious
+- If unsure about an operation, ask for clarification
+- Explain what you're doing in simple terms
+
+You have access to tools for managing Entra ID users. Use them appropriately to help users with their requests.`
+    };
+
+    const messages = [systemPrompt];
 
     console.log("\n💬 Chat with the EntraID Agent");
     console.log('Commands: Type your request or "exit" to quit\n');
@@ -199,7 +219,7 @@ async function runAgent() {
               }
 
               try {
-                const result = await callMCPTool(toolName, toolInput);
+                const result = await callMCPTool(toolName, toolInput, "cli-agent");
                 toolResults.push({
                   tool_call_id: toolCall.id,
                   result: result,
