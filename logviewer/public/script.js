@@ -2,11 +2,20 @@ let allLogs = [];
 let autoRefreshInterval = null;
 let autoRefreshEnabled = false;
 
+// Get the API base URL that works with reverse proxies
+function getApiUrl(endpoint) {
+  // Use relative path with current page location
+  // This works when accessed directly or through a reverse proxy subpath
+  const path = window.location.pathname;
+  const basePath = path.endsWith('/') ? path : path + '/';
+  return basePath + 'api' + endpoint;
+}
+
 // Fetch logs from API
 async function fetchLogs() {
   try {
     updateStatus("Loading...", "loading");
-    const response = await fetch("/api/logs");
+    const response = await fetch(getApiUrl("/logs"));
     const data = await response.json();
 
     if (response.ok) {
