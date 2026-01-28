@@ -13,10 +13,32 @@ const PORT = process.env.WEB_PORT || 3000;
 
 const MCP_SERVER_URL = process.env.MCP_SERVER_URL || "http://localhost:3001";
 
+// Trust proxy - important when deployed behind load balancers/reverse proxies
+app.set('trust proxy', true);
+
 // Initialize OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Helper function to get real client IP (handles proxies)
+function getClientIp(req) {
+  // X-Forwarded-For can contain multiple IPs: "client, proxy1, proxy2"
+  // The first one is the original client
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    const ips = forwarded.split(',').map(ip => ip.trim());
+    return ips[0];
+  }
+  
+  // Fallback to other common headers
+  return req.headers['x-real-ip'] || 
+         req.headers['x-client-ip'] ||
+         req.connection?.remoteAddress ||
+         req.socket?.remoteAddress ||
+         req.ip ||
+         'unknown';
+}
 
 // Middleware
 app.use(express.json());
@@ -24,15 +46,19 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // Debug middleware - log all HTTP requests
 app.use((req, res, next) => {
-  console.log("\n========== HTTP REQUEST DEBUG ==========");
-  console.log(`${req.method} ${req.url}`);
-  console.log("Timestamp:", new Date().toISOString());
-  console.log("IP:", req.ip);
-  console.log("\nHeaders:");
-  console.log(JSON.stringify(req.headers, null, 2));
-  console.log("\nBody:");
-  console.log(JSON.stringify(req.body, null, 2));
-  console.log("========================================\n");
+  if (process.env.DEBUG === 'true') {
+    const clientIp = getClientIp(req);
+    console.log("\n========== HTTP REQUEST DEBUG ==========");
+    console.log(`${req.method} ${req.url}`);
+    console.log("Timestamp:", new Date().toISOString());
+    console.log("Client IP:", clientIp);
+    console.log("req.ip (Express):", req.ip);
+    console.log("\nHeaders:");
+    console.log(JSON.stringify(req.headers, null, 2));
+    console.log("\nBody:");
+    console.log(JSON.stringify(req.body, null, 2));
+    console.log("========================================\n");
+  }
   next();
 });
 
@@ -169,7 +195,7 @@ You have access to tools for managing Entra ID users. Use them appropriately to 
           }
 
           try {
-            const result = await callMCPTool(toolName, toolInput, req.ip);
+            const result = await callMCPTool(toolName, toolInput, getClientIp(req));
             toolResults.push({
               tool_call_id: toolCall.id,
               result: result,
