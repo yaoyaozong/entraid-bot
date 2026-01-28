@@ -22,6 +22,20 @@ const openai = new OpenAI({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+// Debug middleware - log all HTTP requests
+app.use((req, res, next) => {
+  console.log("\n========== HTTP REQUEST DEBUG ==========");
+  console.log(`${req.method} ${req.url}`);
+  console.log("Timestamp:", new Date().toISOString());
+  console.log("IP:", req.ip);
+  console.log("\nHeaders:");
+  console.log(JSON.stringify(req.headers, null, 2));
+  console.log("\nBody:");
+  console.log(JSON.stringify(req.body, null, 2));
+  console.log("========================================\n");
+  next();
+});
+
 // Conversation history per session
 const conversations = new Map();
 
