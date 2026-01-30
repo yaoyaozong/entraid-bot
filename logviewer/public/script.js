@@ -7,7 +7,7 @@ let healthInterval = null;
 function getApiUrl(endpoint) {
   // Build a URL relative to the current document (handles subpaths and index.html)
   const url = new URL(`./api${endpoint}`, window.location.href);
-  return url.pathname + url.search;
+  return url.toString();
 }
 
 // Fetch logs from API
@@ -21,12 +21,15 @@ async function fetchLogs() {
     if (response.ok) {
       allLogs = data.logs || [];
       updateStatus("Connected", "connected");
+      updateDbStatus("immuDB: connected", "connected");
+      setUiEnabled(true);
       setLastUpdated(new Date());
       renderLogs(allLogs);
     } else {
       if (data?.error?.toLowerCase().includes("immudb not connected")) {
         updateStatus("Waiting for immuDB...", "reconnecting");
         updateDbStatus("immuDB: disconnected", "disconnected");
+        setUiEnabled(false);
       } else {
         updateStatus("Error: " + data.error, "disconnected");
       }
