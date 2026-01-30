@@ -94,6 +94,7 @@ export class ImmuDBLogger {
     const ddl =
       "CREATE TABLE IF NOT EXISTS mcp_actions(" +
       "id INTEGER AUTO_INCREMENT," +
+      "authenticated_user VARCHAR," +
       "requester_ip VARCHAR," +
       "target_user_id VARCHAR," +
       "action VARCHAR," +
@@ -109,7 +110,7 @@ export class ImmuDBLogger {
     }
   }
 
-  async recordAction({ requesterIp, targetUserId, action }) {
+  async recordAction({ authenticatedUser, requesterIp, targetUserId, action }) {
     if (!this.enabled) {
       console.log("⚠️  immuDB logging disabled");
       return;
@@ -126,7 +127,7 @@ export class ImmuDBLogger {
     const kvWrite = async () => {
       if (!this.useKv) return;
       const key = `mcp-action:${Date.now()}:${crypto.randomBytes(6).toString("hex")}`;
-      const value = JSON.stringify({ requesterIp, targetUserId, action, timestamp });
+      const value = JSON.stringify({ authenticatedUser, requesterIp, targetUserId, action, timestamp });
       console.log(`📝 Writing to immuDB KV: key=${key}`);
       await this.client.set({ key, value });
       console.log(`✅ Successfully wrote to immuDB`);
@@ -137,8 +138,8 @@ export class ImmuDBLogger {
       // Escape single quotes for SQL safety
       const esc = str => String(str).replace(/'/g, "''");
       const sql =
-        "INSERT INTO mcp_actions(requester_ip, target_user_id, action, ts) VALUES('" +
-        `${esc(requesterIp)}','${esc(targetUserId)}','${esc(action)}','${esc(timestamp)}')`;
+        "INSERT INTO mcp_actions(authenticated_user, requester_ip, target_user_id, action, ts) VALUES('" +
+        `${esc(authenticatedUser || 'unknown')}','${esc(requesterIp)}','${esc(targetUserId)}','${esc(action)}','${esc(timestamp)}')`;
       console.log(`📝 Writing to immuDB SQL: INSERT mcp_actions`);
       await this.client.SQLExec({ sql });
       console.log(`✅ Successfully wrote to immuDB SQL`);

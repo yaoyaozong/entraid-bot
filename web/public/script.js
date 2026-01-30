@@ -1,5 +1,6 @@
 let conversationId = null;
 let isLoading = false;
+let isAuthenticated = false;
 
 const messagesContainer = document.getElementById("messagesContainer");
 const messageInput = document.getElementById("messageInput");
@@ -8,19 +9,93 @@ const clearBtn = document.getElementById("clearBtn");
 const sendBtn = document.getElementById("sendBtn");
 const statusIndicator = document.querySelector(".status-dot");
 const statusText = document.getElementById("statusText");
+const authPrompt = document.getElementById("authPrompt");
+const signinBtn = document.getElementById("signinBtn");
+const signoutBtn = document.getElementById("signoutBtn");
+const userInfo = document.getElementById("userInfo");
+const userName = document.getElementById("userName");
 
-// Check health status on load
+// Check health status and authentication on load
 async function checkHealth() {
   try {
     const response = await fetch("/api/health");
     if (response.ok) {
+      const data = await response.json();
       updateStatus(true);
+      
+      if (data.authenticated) {
+        await checkAuthentication();
+      } else {
+        showAuthPrompt();
+      }
     } else {
       updateStatus(false);
     }
   } catch (error) {
     updateStatus(false);
   }
+}
+
+// Check authentication status
+async function checkAuthentication() {
+  try {
+    const response = await fetch("/api/user");
+    if (response.ok) {
+      const data = await response.json();
+      isAuthenticated = true;
+      showChatInterface();
+      displayUserInfo(data.user);
+    } else {
+      isAuthenticated = false;
+      showAuthPrompt();
+    }
+  } catch (error) {
+    console.error("Authentication check failed:", error);
+    isAuthenticated = false;
+    showAuthPrompt();
+  }
+}
+
+// Show authentication prompt
+function showAuthPrompt() {
+  authPrompt.style.display = "flex";
+  messagesContainer.style.display = "none";
+  chatForm.style.display = "none";
+  userInfo.style.display = "none";
+}
+
+// Show chat interface
+function showChatInterface() {
+  authPrompt.style.display = "none";
+  messagesContainer.style.display = "flex";
+  chatForm.style.display = "block";
+  
+  // Initialize welcome message if container is empty
+  if (!messagesContainer.children.length) {
+    messagesContainer.innerHTML = `
+      <div class="welcome-message">
+        <h2>Welcome to EntraID Manager 👋</h2>
+        <p>I can help you manage user accounts in your EntraID directory.</p>
+        <div class="example-prompts">
+          <p>Try asking me to:</p>
+          <div class="prompt-list">
+            <div class="prompt-item">Enable a user account</div>
+            <div class="prompt-item">Disable a user account</div>
+            <div class="prompt-item">Check user status</div>
+            <div class="prompt-item">Search users by name</div>
+            <div class="prompt-item">Search users by job title</div>
+            <div class="prompt-item">Search users by department</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+// Display user info
+function displayUserInfo(user) {
+  userName.textContent = user.name || user.username;
+  userInfo.style.display = "block";
 }
 
 function updateStatus(connected) {
@@ -81,6 +156,11 @@ async function sendMessage() {
     return;
   }
 
+  if (!isAuthenticated) {
+    showAuthPrompt();
+    return;
+  }
+
   isLoading = true;
   sendBtn.disabled = true;
 
@@ -102,6 +182,12 @@ async function sendMessage() {
         conversationId: conversationId,
       }),
     });
+
+    if (response.status === 401) {
+      removeTypingIndicator();
+      showAuthPrompt();
+      return;
+    }
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -184,6 +270,15 @@ document.addEventListener("click", (e) => {
     messageInput.value = `Can you ${e.target.textContent.toLowerCase()}?`;
     messageInput.focus();
   }
+});
+
+// Authentication event listeners
+signinBtn.addEventListener("click", () => {
+  window.location.href = "/auth/signin";
+});
+
+signoutBtn.addEventListener("click", () => {
+  window.location.href = "/auth/signout";
 });
 
 // Check health on page load

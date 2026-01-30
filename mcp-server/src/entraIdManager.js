@@ -83,6 +83,15 @@ export class EntraIDManager {
       };
     }
 
+    // Check if the user is a protected team account (starts with team3)
+    const upnLower = userId.toLowerCase();
+    if (upnLower.startsWith("team3")) {
+      return {
+        success: false,
+        message: `Cannot disable protected account ${userId}. Accounts starting with team3 are protected from disabling operations.`,
+      };
+    }
+
     try {
       const token = await this.getAccessToken();
       const response = await axios.patch(
@@ -330,6 +339,15 @@ export class EntraIDManager {
         return {
           success: false,
           message: `Cannot disable guest user ${user.userPrincipalName}. Guest users with external identities are protected from disabling operations.`,
+        };
+      }
+
+      // Check if the user is a protected team account (starts with team3)
+      const upnLower = user.userPrincipalName.toLowerCase();
+      if (upnLower.startsWith("team3")) {
+        return {
+          success: false,
+          message: `Cannot disable protected account ${user.userPrincipalName}. Accounts starting with team3 are protected from disabling operations.`,
         };
       }
       

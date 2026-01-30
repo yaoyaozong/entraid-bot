@@ -82,6 +82,37 @@ body {
   transform: scale(0.98);
 }
 
+.user-info {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.signout-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.signout-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 .sidebar-footer {
   margin-top: auto;
   padding-top: 16px;
@@ -145,6 +176,61 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* Authentication Prompt */
+.auth-prompt {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.auth-card {
+  background: white;
+  border-radius: 16px;
+  padding: 48px;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.auth-card h2 {
+  font-size: 24px;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.auth-card p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+
+.signin-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.signin-btn:hover {
+  background: #0052a3;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.signin-btn:active {
+  transform: translateY(0);
 }
 
 .messages-container {

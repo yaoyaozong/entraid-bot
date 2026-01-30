@@ -23,7 +23,7 @@ async function getAvailableTools() {
 }
 
 // Call tool via MCP server
-async function callMCPTool(toolName, toolInput, requesterIp = "cli-agent") {
+async function callMCPTool(toolName, toolInput, requesterIp = "cli-agent", authenticatedUser = "cli-agent") {
   try {
     console.log(`\n🔧 Calling tool: ${toolName}`);
     console.log(`   Input: ${JSON.stringify(toolInput)}`);
@@ -32,6 +32,7 @@ async function callMCPTool(toolName, toolInput, requesterIp = "cli-agent") {
       name: toolName,
       arguments: toolInput,
       requesterIp,
+      authenticatedUser,
     });
 
     if (response.data.success) {
@@ -219,7 +220,7 @@ You have access to tools for managing Entra ID users. Use them appropriately to 
               }
 
               try {
-                const result = await callMCPTool(toolName, toolInput, "cli-agent");
+                const result = await callMCPTool(toolName, toolInput, "cli-agent", "cli-agent");
                 toolResults.push({
                   tool_call_id: toolCall.id,
                   result: result,

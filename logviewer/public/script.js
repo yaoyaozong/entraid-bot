@@ -45,7 +45,7 @@ function updateStatus(text, status) {
 // Show error message
 function showError(message) {
   const tbody = document.getElementById("logs-tbody");
-  tbody.innerHTML = `<tr><td colspan="5" class="loading" style="color: #f44336;">${message}</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="6" class="loading" style="color: #f44336;">${message}</td></tr>`;
 }
 
 // Format timestamp
@@ -68,7 +68,7 @@ function renderLogs(logsToRender) {
 
   if (logsToRender.length === 0) {
     tbody.innerHTML =
-      '<tr><td colspan="5" class="loading">No audit logs found</td></tr>';
+      '<tr><td colspan="6" class="loading">No audit logs found</td></tr>';
     document.getElementById("log-count").textContent = "Showing 0 entries";
     return;
   }
@@ -77,6 +77,7 @@ function renderLogs(logsToRender) {
     .map((log) => {
       const action = log.action || "unknown";
       const timestamp = formatTimestamp(log.timestamp || log.ts);
+      const authenticatedUser = log.authenticatedUser || "unknown";
       const requesterIp = log.requesterIp || "unknown";
       const targetUserId = log.targetUserId || "unknown";
       const source = log.source || "unknown";
@@ -86,6 +87,7 @@ function renderLogs(logsToRender) {
           <td class="timestamp">${timestamp}</td>
           <td><span class="action ${action}">${action.toUpperCase()}</span></td>
           <td>${targetUserId}</td>
+          <td>${authenticatedUser}</td>
           <td>${requesterIp}</td>
           <td><span class="source ${source}">${source.toUpperCase()}</span></td>
         </tr>
@@ -109,6 +111,7 @@ function applyFilters() {
       !searchText ||
       (log.requesterIp || "").toLowerCase().includes(searchText) ||
       (log.targetUserId || "").toLowerCase().includes(searchText) ||
+      (log.authenticatedUser || "").toLowerCase().includes(searchText) ||
       (log.action || "").toLowerCase().includes(searchText);
 
     const matchesAction =

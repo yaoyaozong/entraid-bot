@@ -27,7 +27,7 @@
       <input
         type="text"
         id="search-box"
-        placeholder="Search by user, IP, or action..."
+        placeholder="Search by user, authenticated user, IP, or action..."
         class="search-input"
       />
       <select id="filter-action" class="filter-select">
@@ -49,13 +49,14 @@
             <th>Timestamp</th>
             <th>Action</th>
             <th>Target User</th>
+            <th>Authenticated User</th>
             <th>Requester IP</th>
             <th>Source</th>
           </tr>
         </thead>
         <tbody id="logs-tbody">
           <tr>
-            <td colspan="5" class="loading">Loading audit logs...</td>
+            <td colspan="6" class="loading">Loading audit logs...</td>
           </tr>
         </tbody>
       </table>

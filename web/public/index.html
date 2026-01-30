@@ -13,6 +13,10 @@
           <h1>🔐 EntraID Manager</h1>
           <p>AI-Powered User Management</p>
         </div>
+        <div id="userInfo" class="user-info" style="display: none;">
+          <p class="user-name" id="userName"></p>
+          <button id="signoutBtn" class="signout-btn">Sign Out</button>
+        </div>
         <button id="clearBtn" class="clear-btn">+ New Chat</button>
         <div class="sidebar-footer">
           <p class="status-label">Status</p>
@@ -24,6 +28,14 @@
       </div>
 
       <div class="main-content">
+        <div id="authPrompt" class="auth-prompt" style="display: none;">
+          <div class="auth-card">
+            <h2>🔐 Authentication Required</h2>
+            <p>Please sign in with your Microsoft account to access EntraID Manager.</p>
+            <button id="signinBtn" class="signin-btn">Sign In with Microsoft</button>
+          </div>
+        </div>
+
         <div id="messagesContainer" class="messages-container">
           <div class="welcome-message">
             <h2>Welcome to EntraID Manager 👋</h2>

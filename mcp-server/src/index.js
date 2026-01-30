@@ -81,7 +81,7 @@ const tools = [
   {
     name: "disable_user",
     description:
-      "Disable a user account in EntraID by user ID or user principal name (UPN). Guest users (containing #EXT# in their UPN) cannot be disabled.",
+      "Disable a user account in EntraID by user ID or user principal name (UPN). Guest users (containing #EXT# in their UPN) and accounts starting with team3 cannot be disabled.",
     inputSchema: {
       type: "object",
       properties: {
@@ -174,7 +174,7 @@ const tools = [
   {
     name: "disable_user_by_name",
     description:
-      "Disable a user account by display name. Guest users (containing #EXT# in their UPN) cannot be disabled. If multiple matches are found, returns the list for you to use the exact UPN.",
+      "Disable a user account by display name. Guest users (containing #EXT# in their UPN) and accounts starting with team3 cannot be disabled. If multiple matches are found, returns the list for you to use the exact UPN.",
     inputSchema: {
       type: "object",
       properties: {
@@ -265,10 +265,12 @@ app.post("/call-tool", async (req, res) => {
         args.displayName;
 
       const requesterIp = getRequesterIp(req);
-      console.log(`📝 Recording audit: action=${actionName}, user=${targetUserId}, ip=${requesterIp}`);
+      const authenticatedUser = req.body?.authenticatedUser || "unknown";
+      console.log(`📝 Recording audit: action=${actionName}, user=${targetUserId}, ip=${requesterIp}, authenticated=${authenticatedUser}`);
 
       immudbLogger
         .recordAction({
+          authenticatedUser,
           requesterIp,
           targetUserId,
           action: actionName,

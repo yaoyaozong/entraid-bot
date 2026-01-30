@@ -121,7 +121,7 @@ app.get("/api/logs", async (req, res) => {
     // Fetch from SQL table if available
     try {
       const sqlResult = await immudbClient.SQLQuery({
-        sql: "SELECT id, requester_ip, target_user_id, action, ts FROM mcp_actions ORDER BY id DESC LIMIT 100",
+        sql: "SELECT id, authenticated_user, requester_ip, target_user_id, action, ts FROM mcp_actions ORDER BY id DESC LIMIT 100",
       });
 
       if (sqlResult) {
@@ -133,6 +133,7 @@ app.get("/api/logs", async (req, res) => {
           logs.push({
             source: "sql",
             id: getId(row.id),
+            authenticatedUser: getStr(row.authenticated_user),
             requesterIp: getStr(row.requester_ip),
             targetUserId: getStr(row.target_user_id),
             action: getStr(row.action),
