@@ -1,6 +1,7 @@
 let allLogs = [];
 let autoRefreshInterval = null;
 let autoRefreshEnabled = false;
+let healthInterval = null;
 
 // Get the API base URL that works with reverse proxies
 function getApiUrl(endpoint) {
@@ -15,19 +16,27 @@ function getApiUrl(endpoint) {
 async function fetchLogs() {
   try {
     updateStatus("Loading...", "loading");
+    updateDbStatus("immuDB: checking...", "loading");
     const response = await fetch(getApiUrl("/logs"));
     const data = await response.json();
 
     if (response.ok) {
       allLogs = data.logs || [];
       updateStatus("Connected", "connected");
+      setLastUpdated(new Date());
       renderLogs(allLogs);
     } else {
-      updateStatus("Error: " + data.error, "disconnected");
+      if (data?.error?.toLowerCase().includes("immudb not connected")) {
+        updateStatus("Waiting for immuDB...", "reconnecting");
+        updateDbStatus("immuDB: disconnected", "disconnected");
+      } else {
+        updateStatus("Error: " + data.error, "disconnected");
+      }
       showError("Failed to fetch logs: " + data.error);
     }
   } catch (error) {
-    updateStatus("Disconnected", "disconnected");
+    updateStatus("Server unreachable", "disconnected");
+    updateDbStatus("immuDB: unknown", "disconnected");
     showError("Connection error: " + error.message);
   }
 }
@@ -38,8 +47,67 @@ function updateStatus(text, status) {
   const statusIndicator = document.getElementById("status-indicator");
 
   statusText.textContent = text;
-  statusIndicator.classList.remove("connected", "disconnected");
+  statusIndicator.classList.remove("connected", "disconnected", "loading", "reconnecting");
   statusIndicator.classList.add(status);
+}
+
+function updateDbStatus(text, status) {
+  const dbStatus = document.getElementById("db-status");
+  if (!dbStatus) return;
+  dbStatus.textContent = text;
+  dbStatus.classList.remove("connected", "disconnected", "loading", "reconnecting");
+  dbStatus.classList.add(status);
+}
+
+function setUiEnabled(enabled) {
+  const controls = document.querySelector(".controls");
+  const tableWrapper = document.querySelector(".table-wrapper");
+  const statusBar = document.querySelector(".status-bar");
+  const banner = document.getElementById("db-banner");
+
+  [controls, tableWrapper, statusBar].forEach((el) => {
+    if (!el) return;
+    el.classList.toggle("disabled", !enabled);
+  });
+
+  if (banner) {
+    banner.classList.toggle("hidden", enabled);
+  }
+}
+
+function setLastUpdated(date) {
+  const lastUpdated = document.getElementById("last-updated");
+  if (!lastUpdated) return;
+  lastUpdated.textContent = `Last update: ${date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  })}`;
+}
+
+async function fetchHealth() {
+  try {
+    const response = await fetch(getApiUrl("/health"));
+    const data = await response.json();
+
+    if (response.ok) {
+      const isConnected = data?.immudb === "connected";
+      updateDbStatus(
+        `immuDB: ${isConnected ? "connected" : "disconnected"}`,
+        isConnected ? "connected" : "disconnected"
+      );
+      if (!isConnected) {
+        updateStatus("Waiting for immuDB...", "reconnecting");
+        setUiEnabled(false);
+      } else {
+        setUiEnabled(true);
+      }
+      return;
+    }
+  } catch (error) {
+    updateDbStatus("immuDB: unknown", "disconnected");
+    setUiEnabled(false);
+  }
 }
 
 // Show error message
@@ -146,6 +214,14 @@ function toggleAutoRefresh(enabled) {
   }
 }
 
+function startHealthPolling() {
+  if (healthInterval) {
+    clearInterval(healthInterval);
+  }
+  fetchHealth();
+  healthInterval = setInterval(fetchHealth, 5000);
+}
+
 // Event listeners
 document.getElementById("refresh-btn").addEventListener("click", fetchLogs);
 document
@@ -163,3 +239,4 @@ document
 
 // Initial load (without auto-refresh)
 fetchLogs();
+startHealthPolling();

@@ -66,8 +66,67 @@ header p {
   color: #f44336;
 }
 
+.status.loading,
+.status.reconnecting {
+  color: #ff9800;
+}
+
 #status-indicator {
   animation: pulse 2s infinite;
+}
+
+.status-pill {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #eee;
+  color: #666;
+}
+
+.status-pill.connected {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-pill.disconnected {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.status-pill.loading,
+.status-pill.reconnecting {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.status-meta {
+  font-size: 12px;
+  color: #666;
+}
+
+.banner {
+  background: #fff8e1;
+  color: #8d6e63;
+  padding: 10px 20px;
+  border-bottom: 1px solid #f0e0b8;
+  font-size: 13px;
+}
+
+.banner.hidden {
+  display: none;
+}
+
+.controls.disabled,
+.table-wrapper.disabled,
+.status-bar.disabled {
+  opacity: 0.6;
+}
+
+.controls.disabled input,
+.controls.disabled select,
+.status-bar.disabled button {
+  pointer-events: none;
 }
 
 @keyframes pulse {

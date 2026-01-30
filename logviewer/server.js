@@ -27,6 +27,10 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // Initialize immuDB connection
 let immudbClient = null;
+let immudbConnecting = false;
+let reconnectTimer = null;
+let reconnectDelayMs = 1000;
+const RECONNECT_MAX_DELAY_MS = 30000;
 
 async function initImmuDB() {
   if (!ImmudbClient) {
@@ -63,9 +67,44 @@ async function initImmuDB() {
   }
 }
 
+async function connectImmuDBWithRetry() {
+  if (immudbConnecting || immudbClient) {
+    return immudbClient;
+  }
+
+  immudbConnecting = true;
+  const client = await initImmuDB();
+  immudbConnecting = false;
+
+  if (client) {
+    immudbClient = client;
+    reconnectDelayMs = 1000;
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    return immudbClient;
+  }
+
+  if (!reconnectTimer) {
+    const delay = reconnectDelayMs;
+    reconnectDelayMs = Math.min(reconnectDelayMs * 2, RECONNECT_MAX_DELAY_MS);
+    console.warn(`⚠️  immuDB not ready. Retrying in ${delay}ms...`);
+    reconnectTimer = setTimeout(async () => {
+      reconnectTimer = null;
+      await connectImmuDBWithRetry();
+    }, delay);
+  }
+
+  return null;
+}
+
 // API: Check database and tables
 app.get("/api/tables", async (req, res) => {
   try {
+    if (!immudbClient) {
+      await connectImmuDBWithRetry();
+    }
     if (!immudbClient) {
       return res.status(503).json({ error: "immuDB not connected" });
     }
@@ -80,6 +119,9 @@ app.get("/api/tables", async (req, res) => {
 // API: Get latest audit logs
 app.get("/api/logs", async (req, res) => {
   try {
+    if (!immudbClient) {
+      await connectImmuDBWithRetry();
+    }
     if (!immudbClient) {
       return res.status(503).json({ error: "immuDB not connected" });
     }
@@ -179,6 +221,9 @@ app.get("/api/health", (req, res) => {
   try {
     console.log("📍 Starting Log Viewer initialization...");
     immudbClient = await initImmuDB();
+    if (!immudbClient) {
+      await connectImmuDBWithRetry();
+    }
     console.log("📍 immuDB client initialized");
 
     const server = app.listen(PORT, () => {
