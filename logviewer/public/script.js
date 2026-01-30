@@ -5,11 +5,9 @@ let healthInterval = null;
 
 // Get the API base URL that works with reverse proxies
 function getApiUrl(endpoint) {
-  // Use relative path with current page location
-  // This works when accessed directly or through a reverse proxy subpath
-  const path = window.location.pathname;
-  const basePath = path.endsWith('/') ? path : path + '/';
-  return basePath + 'api' + endpoint;
+  // Build a URL relative to the current document (handles subpaths and index.html)
+  const url = new URL(`./api${endpoint}`, window.location.href);
+  return url.pathname + url.search;
 }
 
 // Fetch logs from API
