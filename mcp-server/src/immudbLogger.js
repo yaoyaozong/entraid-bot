@@ -90,6 +90,21 @@ export class ImmuDBLogger {
     return this.ready;
   }
 
+  async reAuthenticate() {
+    try {
+      console.log("🔄 Re-authenticating with immuDB...");
+      await this.client.login({ 
+        user: this.user, 
+        password: this.password 
+      });
+      await this.client.useDatabase({ databasename: this.database });
+      console.log("✅ Re-authentication successful");
+    } catch (error) {
+      console.error("❌ Re-authentication failed:", error);
+      throw error;
+    }
+  }
+
   async ensureSqlArtifacts() {
     const ddl =
       "CREATE TABLE IF NOT EXISTS mcp_actions(" +
@@ -145,8 +160,27 @@ export class ImmuDBLogger {
       console.log(`✅ Successfully wrote to immuDB SQL`);
     };
 
+    const executeWithRetry = async (fn) => {
+      try {
+        await fn();
+      } catch (error) {
+        // Check if it's a token expiration error (code 7 = PERMISSION_DENIED)
+        if (error.code === 7 && error.details?.includes('token has expired')) {
+          console.log("⚠️  Token expired, re-authenticating...");
+          await this.reAuthenticate();
+          // Retry the operation
+          await fn();
+        } else {
+          throw error;
+        }
+      }
+    };
+
     // Run whichever modes are enabled; fail independently to keep audit attempts best-effort.
-    const results = await Promise.allSettled([kvWrite(), sqlInsert()]);
+    const results = await Promise.allSettled([
+      executeWithRetry(kvWrite),
+      executeWithRetry(sqlInsert)
+    ]);
     results.forEach((r, i) => {
       if (r.status === "rejected") {
         console.error(`❌ Failed to write audit (${i === 0 ? 'KV' : 'SQL'}):`, r.reason);

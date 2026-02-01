@@ -67,6 +67,31 @@ async function initImmuDB() {
   }
 }
 
+async function reAuthenticateImmuDB() {
+  if (!immudbClient) {
+    console.log("⚠️  No client to re-authenticate, initializing new connection...");
+    immudbClient = null;
+    return await connectImmuDBWithRetry();
+  }
+
+  try {
+    const user = process.env.IMMUDB_USER;
+    const password = process.env.IMMUDB_PASSWORD;
+    const database = process.env.IMMUDB_DATABASE;
+
+    console.log("🔄 Re-authenticating with immuDB...");
+    await immudbClient.login({ user, password });
+    await immudbClient.useDatabase({ databasename: database });
+    console.log("✅ Re-authentication successful");
+    return immudbClient;
+  } catch (error) {
+    console.error("❌ Re-authentication failed:", error.message);
+    // Reset client and reconnect
+    immudbClient = null;
+    return await connectImmuDBWithRetry();
+  }
+}
+
 async function connectImmuDBWithRetry() {
   if (immudbConnecting || immudbClient) {
     return immudbClient;
@@ -109,8 +134,20 @@ app.get("/api/tables", async (req, res) => {
       return res.status(503).json({ error: "immuDB not connected" });
     }
 
-    const tables = await immudbClient.SQLListTables();
-    res.json({ tables });
+    try {
+      const tables = await immudbClient.SQLListTables();
+      res.json({ tables });
+    } catch (error) {
+      // Check if it's a token expiration error
+      if (error.code === 7 && error.details?.includes('token has expired')) {
+        console.log("⚠️  Token expired, re-authenticating...");
+        await reAuthenticateImmuDB();
+        const tables = await immudbClient.SQLListTables();
+        res.json({ tables });
+      } else {
+        throw error;
+      }
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -157,7 +194,38 @@ app.get("/api/logs", async (req, res) => {
         // console.log("⚠️  No KV entries found");
       }
     } catch (error) {
-      console.error("⚠️  Failed to fetch KV logs:", error.message);
+      // Check if it's a token expiration error (code 7 = PERMISSION_DENIED)
+      if (error.code === 7 && error.details?.includes('token has expired')) {
+        console.log("⚠️  Token expired during KV fetch, re-authenticating...");
+        await reAuthenticateImmuDB();
+        // Retry KV fetch
+        try {
+          const kvResult = await immudbClient.scan({
+            prefix: "mcp-action:",
+            limit: 100,
+            desc: true,
+          });
+          if (kvResult?.entriesList && kvResult.entriesList.length > 0) {
+            kvResult.entriesList.forEach((entry) => {
+              try {
+                const key = entry.key.toString();
+                const value = JSON.parse(entry.value.toString());
+                logs.push({
+                  source: "kv",
+                  key: key,
+                  ...value,
+                });
+              } catch (e) {
+                console.error("Failed to parse KV entry:", e.message);
+              }
+            });
+          }
+        } catch (retryError) {
+          console.error("⚠️  Failed to fetch KV logs after retry:", retryError.message);
+        }
+      } else {
+        console.error("⚠️  Failed to fetch KV logs:", error.message);
+      }
     }
 
     // Fetch from SQL table if available
@@ -185,7 +253,36 @@ app.get("/api/logs", async (req, res) => {
         // console.log(`✅ Fetched ${sqlResult.length} SQL records`);
       }
     } catch (error) {
-      console.error("⚠️  Failed to fetch SQL logs:", error.message);
+      // Check if it's a token expiration error (code 7 = PERMISSION_DENIED)
+      if (error.code === 7 && error.details?.includes('token has expired')) {
+        console.log("⚠️  Token expired during SQL fetch, re-authenticating...");
+        await reAuthenticateImmuDB();
+        // Retry SQL fetch
+        try {
+          const sqlResult = await immudbClient.SQLQuery({
+            sql: "SELECT id, authenticated_user, requester_ip, target_user_id, action, ts FROM mcp_actions ORDER BY id DESC LIMIT 100",
+          });
+          if (sqlResult) {
+            sqlResult.forEach((row) => {
+              const getId = (val) => val?.prop || val;
+              const getStr = (val) => val?.prop || val || "unknown";
+              logs.push({
+                source: "sql",
+                id: getId(row.id),
+                authenticatedUser: getStr(row.authenticated_user),
+                requesterIp: getStr(row.requester_ip),
+                targetUserId: getStr(row.target_user_id),
+                action: getStr(row.action),
+                timestamp: getStr(row.ts),
+              });
+            });
+          }
+        } catch (retryError) {
+          console.error("⚠️  Failed to fetch SQL logs after retry:", retryError.message);
+        }
+      } else {
+        console.error("⚠️  Failed to fetch SQL logs:", error.message);
+      }
     }
 
     // Combine and sort by timestamp (latest first)
